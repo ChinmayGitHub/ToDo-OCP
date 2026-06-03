@@ -11,7 +11,7 @@ export default defineConfig({
     port: 8080,
     host: true,
     strictPort: true,
-    allowedHosts: ['all']
+    allowedHosts: true
   }
 })
 
