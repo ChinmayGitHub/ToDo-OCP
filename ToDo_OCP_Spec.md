@@ -28,11 +28,16 @@
 - On submit, text is added to the ToDo list
 - Text box clears after submission
 
-### 2. Complete/Delete ToDo
+### 2. List ToDo
 
-**Actions:**
-- Mark todo as complete (strikethrough)
-- Delete todo from list
+**Display:**
+- Shows all available ToDo items
+- Simple list format
+
+**Limitations:**
+- No edit functionality
+- No complete functionality
+- No delete functionality
 
 ## Project Structure
 
