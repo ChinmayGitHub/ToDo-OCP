@@ -9,7 +9,7 @@
 ## Technical Stack
 
 - TypeScript
-- React
+- React 18
 - Vite (build tool)
 - HTML/CSS for UI
 - Session Storage API
@@ -28,42 +28,11 @@
 - On submit, text is added to the ToDo list
 - Text box clears after submission
 
-### 2. List ToDo
+### 2. Complete/Delete ToDo
 
-**Display:**
-- Shows all available ToDo items
-- Simple list format
-
-**Limitations:**
-- No edit functionality
-- No update functionality
-- No delete functionality
-
-## User Interface
-
-**Layout:** Single page application
-
-**Components:**
-1. Text input box (top)
-2. Submit button (next to text box)
-3. ToDo list display (below input section)
-
-**Flow:**
-```
-[Text Input Box] [Submit Button]
-─────────────────────────────────
-ToDo List:
-- Item 1
-- Item 2
-- Item 3
-```
-
-## Data Management
-
-**Storage Type:** Session Storage
-- Data persists only during the current browser session
-- Data is cleared when page is refreshed
-- No persistent storage
+**Actions:**
+- Mark todo as complete (strikethrough)
+- Delete todo from list
 
 ## Project Structure
 
@@ -71,27 +40,32 @@ ToDo List:
 ToDo-OCP/
 ├── src/
 │   ├── App.tsx
-│   ├── components/
-│   │   ├── TodoInput.tsx
-│   │   └── TodoList.tsx
-│   └── index.html
+│   ├── main.tsx
+│   └── components/
+│       ├── TodoInput.tsx
+│       └── TodoList.tsx
+├── index.html
 ├── package.json
 ├── tsconfig.json
-└── vite.config.ts
+├── tsconfig.node.json
+├── vite.config.ts
+└── README.md
 ```
 
 ## Technical Dependencies
 
-**Required packages:**
-- react
-- react-dom
-- typescript
-- vite
+### Production Dependencies
+- react: ^18.2.0
+- react-dom: ^18.2.0
+- vite: ^4.3.0
+- @vitejs/plugin-react: ^4.0.0
+- typescript: ^5.0.0
 
-**Dev dependencies:**
-- @types/react
-- @types/react-dom
-- @vitejs/plugin-react
+### Dev Dependencies
+- @types/react: ^18.2.0
+- @types/react-dom: ^18.2.0
+
+**Note:** Vite, TypeScript, and @vitejs/plugin-react must be in `dependencies` (not `devDependencies`) for OCP production builds, as they are required by `vite preview` command and `vite.config.ts`.
 
 ## Build Configuration
 
@@ -108,14 +82,14 @@ ToDo-OCP/
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "vite": "^4.3.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "typescript": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^4.3.0"
+    "@types/react-dom": "^18.2.0"
   }
 }
 ```
@@ -134,122 +108,106 @@ export default defineConfig({
   },
   preview: {
     port: 8080,
-    host: true
+    host: true,
+    strictPort: true,
+    allowedHosts: true
   }
 })
 ```
 
+**Key Configuration:**
+- `host: true` - Allows external access
+- `strictPort: true` - Fails if port 8080 is unavailable
+- `allowedHosts: true` - Disables host checking for OCP route access
+
 ## Local Development
 
 ### Prerequisites
-- Node.js 18 or higher
-- npm or yarn
+- Node.js 16 or higher
+- npm
 
-### Setup and Run Locally
+### Setup and Run
 
-1. **Clone Repository**
-   ```bash
-   git clone https://github.com/ChinmayGitHub/ToDo-OCP.git
-   cd ToDo-OCP
-   ```
+```bash
+# Install dependencies
+npm install
 
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+# Start development server (port 5173)
+npm run dev
 
-3. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-   - Application will start on http://localhost:5173
-   - Hot reload enabled for development
+# Build for production
+npm run build
 
-4. **Build for Production**
-   ```bash
-   npm run build
-   ```
-   - Creates optimized production build in `dist/` directory
+# Preview production build (port 8080)
+npm run preview
+```
 
-5. **Preview Production Build**
-   ```bash
-   npm start
-   ```
-   - Serves production build on http://localhost:8080
-   - This simulates the OCP deployment environment
+## OCP Deployment
 
-## Deployment
+### Prerequisites
+- OpenShift CLI (`oc`) installed
+- Access to OpenShift cluster
+- Git repository with code
 
-**Platform:** OpenShift Container Platform (OCP)
+### Deployment Methods
 
-**Method:** Import from Git
+**Option 1: OpenShift Console (Recommended)**
+1. Navigate to Developer perspective → "+Add" → "Import from Git"
+2. Enter Git repository URL
+3. Select Node.js builder image (version 18+)
+4. Set Application/Name as `todo-ocp`
+5. Ensure port 8080 is configured
+6. Check "Create Route"
+7. Click "Create"
 
-**Repository:**
-- URL: https://github.com/ChinmayGitHub/ToDo-OCP
-- New repository to be created
+**Option 2: CLI**
+```bash
+oc new-project todo-ocp
+oc new-app nodejs~https://github.com/ChinmayGitHub/ToDo-OCP.git --name=todo-ocp
+oc expose svc/todo-ocp
+oc get route todo-ocp
+```
 
-### S2I (Source-to-Image) Configuration
+### S2I Build Process
 
-**Builder Image:** Node.js (ubi8/nodejs-18 or similar)
+1. S2I detects `package.json`
+2. Runs `npm install` (installs all dependencies)
+3. Runs `npm run build` (creates production build)
+4. Runs `npm start` (serves via `vite preview` on port 8080)
 
-**Build Process:**
-1. S2I detects package.json
-2. Runs `npm install`
-3. Runs `npm run build`
-4. Serves built files using `npm start`
+### Deployment Troubleshooting
 
-**Port:** 8080 (required for OCP)
+**Issue 1: CrashLoopBackOff - "vite: command not found"**
+- **Cause:** Vite was in `devDependencies`
+- **Solution:** Move `vite` to `dependencies`
 
-### OCP Deployment Steps
+**Issue 2: "Cannot find module '@vitejs/plugin-react'"**
+- **Cause:** Plugin was in `devDependencies` but required by `vite.config.ts`
+- **Solution:** Move `@vitejs/plugin-react` to `dependencies`
 
-1. **Create GitHub Repository**
-   - Repository name: ToDo-OCP
-   - Push all application code including:
-     - src/ directory
-     - package.json
-     - tsconfig.json
-     - vite.config.ts
+**Issue 3: "Blocked request. This host is not allowed"**
+- **Cause:** Vite preview blocks unknown hostnames by default
+- **Solution:** Add `allowedHosts: true` to preview config in `vite.config.ts`
 
-2. **OCP Console - Import from Git**
-   - Navigate to Developer perspective
-   - Click "+Add" → "Import from Git"
-   - Enter Git repository URL: https://github.com/ChinmayGitHub/ToDo-OCP
+### Verification
 
-3. **Configure Import**
-   - Builder Image: Select "Node.js" (version 18 or higher)
-   - Builder Image Version: 18-ubi8 (or latest available)
-   - Application Name: todo-ocp
-   - Name: todo-ocp
+```bash
+# Check pod status
+oc get pods
 
-4. **Build Configuration**
-   - S2I will automatically:
-     - Detect package.json
-     - Install dependencies with `npm install`
-     - Build the app with `npm run build`
-     - Start the app with `npm start` on port 8080
+# Check service
+oc get svc
 
-5. **Deployment Configuration**
-   - Target Port: 8080
-   - Create Route: Yes (checked)
-   - Route: Auto-generated public URL
+# Check route
+oc get route
 
-6. **Deploy**
-   - Click "Create"
-   - OCP will build and deploy the application
-   - Monitor build logs in the Topology view
+# View logs
+oc logs -f deployment/todo-ocp
+```
 
-7. **Access Application**
-   - Once deployment is complete, click on the route URL
-   - Application will be accessible via the generated route
+## Key Learnings
 
-
-## Out of Scope
-
-- No tests
-- No examples
-- No comments
-- No README
-- No validations
-- No exceptions handling
-- No edit/update/delete functionality
-- No persistent storage
+1. **Production Dependencies:** Build tools required at runtime must be in `dependencies`, not `devDependencies`
+2. **Host Configuration:** OCP routes require `allowedHosts: true` in Vite preview config
+3. **Port Configuration:** Must use port 8080 for OCP compatibility
+4. **S2I Process:** OpenShift automatically runs install, build, and start scripts from `package.json`
